@@ -16,6 +16,12 @@ jobs:
                   token: ${{ secrets.github_token }}
                   prefix: rust
 
+    build-native-code:
+        uses: ./.github/workflows/build-native-code.yml
+        with:
+            rust-version: stable
+            cache: false
+
     build:
         needs: [ generate-build-number, build-native-code ]
         runs-on: ubuntu-latest
