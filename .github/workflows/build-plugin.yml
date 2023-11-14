@@ -17,7 +17,7 @@ jobs:
                   prefix: rust
 
     build:
-        needs: [ generate-build-number, build-native-code ]
+        needs: [ generate-build-number]
         runs-on: ubuntu-latest
         strategy:
             fail-fast: true
