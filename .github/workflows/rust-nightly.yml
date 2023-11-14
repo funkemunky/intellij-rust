@@ -81,7 +81,6 @@ jobs:
             - name: Publish rust plugin
               uses: gradle/gradle-build-action@v2
               with:
-                  arguments: ":plugin:publishPlugin"
                   cache-disabled: true
 
     save-commit:
