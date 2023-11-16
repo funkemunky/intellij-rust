@@ -16,6 +16,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.contextOfType
 import com.intellij.psi.util.isAncestor
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.SmartList
@@ -73,6 +74,7 @@ import org.rust.lang.core.psi.*
 import org.rust.lang.core.psi.RsElementTypes.IDENTIFIER
 import org.rust.lang.core.psi.ext.*
 import org.rust.lang.core.resolve.*
+import org.rust.lang.core.resolve.ref.RsPathReference
 import org.rust.lang.core.resolve.ref.deepResolve
 import org.rust.lang.core.types.*
 import org.rust.lang.core.types.consts.asLong
@@ -714,6 +716,7 @@ class RsErrorAnnotator : AnnotatorBase(), HighlightRangeExtension {
 
         checkReferenceIsPublic(path, path, holder)
         checkUnstableAttribute(path, holder)
+        checkTypeParameterList(holder, path)
     }
 
     private fun checkSelfImport(holder: RsAnnotationHolder, path: RsPath): Boolean {
@@ -1523,6 +1526,18 @@ class RsErrorAnnotator : AnnotatorBase(), HighlightRangeExtension {
             else -> null
         }
         RsDiagnostic.AwaitOutsideAsyncContext(element, fix).addToHolder(holder)
+    }
+
+    private fun checkTypeParameterList(holder: RsAnnotationHolder, path: RsPath) {
+        val typeParameter = path.contextOfType<RsPathType>()?.owner?.context as? RsTypeParameter ?: return
+        val resolved = path.reference?.resolve() ?: return
+        val typeParameterList = (typeParameter.parent as? RsTypeParameterList)?.typeParameterList ?: return
+
+        val parameterIndex = typeParameterList.indexOf(typeParameter).takeIf { it != -1 } ?: return
+        val referencedParameterIndex = typeParameterList.indexOf(resolved).takeIf { it != -1 } ?: return
+        if (parameterIndex < referencedParameterIndex) {
+            RsDiagnostic.GenericDefaultParamCannotUseForwardError(path).addToHolder(holder)
+        }
     }
 
     private fun RsFunctionOrLambda.returnsFuture(): Boolean {
